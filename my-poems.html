@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Poems | Volant Poetry</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --primary: #4b2aad;
+  --bg: #faf8ff;
+  --text: #1a1a1a;
+  --muted: #666;
+  --radius: 14px;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  min-height: 100vh;
+}
+
+header {
+  background: var(--primary);
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+h2 {
+  text-align: center;
+  font-family: 'Playfair Display', serif;
+  font-weight: 600;
+  margin-bottom: 30px;
+}
+
+.poem-card {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease;
+}
+
+.poem-card:hover {
+  transform: translateY(-3px);
+}
+
+.poem-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 5px;
+}
+
+.poem-meta {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.poem-content {
+  font-size: 1rem;
+  line-height: 1.6;
+  white-space: pre-line;
+  margin-bottom: 10px;
+}
+
+.categories {
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.empty-message {
+  text-align: center;
+  color: var(--muted);
+  margin-top: 40px;
+  font-size: 1.1rem;
+}
+
+.logout-btn {
+  display: block;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  margin: 30px auto;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: #37187f;
+}
+</style>
+</head>
+
+<body>
+<header>My Poems</header>
+
+<div class="container">
+  <h2>Your Submitted Works</h2>
+  <div id="poemsContainer">
+    <p class="empty-message">Loading your poems...</p>
+  </div>
+  <button id="logoutBtn" class="logout-btn">Log Out</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  signOut 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { 
+  getFirestore, 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  doc, 
+  getDoc 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ---------------- FIREBASE CONFIG ----------------
+const firebaseConfig = {
+  apiKey: "AIzaSyC4DHI8aBVY4JjTvJ-r-TGIDPsewtEWxzU",
+  authDomain: "silent-depth.firebaseapp.com",
+  projectId: "silent-depth",
+  storageBucket: "silent-depth.appspot.com",
+  messagingSenderId: "78008755450",
+  appId: "1:78008755450:web:3fd0f0f298a08820935543"
+};
+
+// ---------------- INIT ----------------
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const poemsContainer = document.getElementById("poemsContainer");
+const logoutBtn = document.getElementById("logoutBtn");
+
+// ---------------- LOGOUT ----------------
+logoutBtn.addEventListener("click", async () => {
+  await signOut(auth);
+  window.location.href = "users-login.html";
+});
+
+// ---------------- FETCH USER POEMS ----------------
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    alert("Please log in to view your poems.");
+    window.location.href = "users-login.html";
+    return;
+  }
+
+  try {
+    // Fetch username from Firestore
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    let username = user.email.split("@")[0];
+    if (userDoc.exists()) username = userDoc.data().username || username;
+
+    // Query poems submitted by this user
+    const q = query(collection(db, "recentPoems"), where("submittedBy", "==", username));
+    const querySnap = await getDocs(q);
+
+    poemsContainer.innerHTML = "";
+
+    if (querySnap.empty) {
+      poemsContainer.innerHTML = `<p class="empty-message">You haven’t submitted any poems yet.</p>`;
+      return;
+    }
+
+    querySnap.forEach((doc) => {
+      const poem = doc.data();
+      const date = poem.timestamp?.toDate ? poem.timestamp.toDate().toLocaleString() : "Unknown";
+
+      const poemCard = document.createElement("div");
+      poemCard.className = "poem-card";
+      poemCard.innerHTML = `
+        <div class="poem-title">${poem.title}</div>
+        <div class="poem-meta">Submitted on ${date}</div>
+        <div class="poem-content">${poem.content}</div>
+        <div class="categories">📚 Categories: ${poem.categories?.join(", ") || "Uncategorized"}</div>
+      `;
+
+      poemsContainer.appendChild(poemCard);
+    });
+
+  } catch (err) {
+    poemsContainer.innerHTML = `<p class="empty-message">Error loading poems: ${err.message}</p>`;
+  }
+});
+</script>
+
+</body>
+</html>

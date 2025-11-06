@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poems | Volant Poetry</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="png" href="images/logo.png" />
+  <meta name="description" content="Discover a growing collection of verses — arranged alphabetically so you can wander through words with ease.">
+  <link rel="author" href="https://volantpoetry.github.io/about.html">
+
+  <style>
+/* Entire page background */
+body {
+  background-color: #ffffff; /* page is white */
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Recent poems section */
+.recent-poems-section {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  background-color: #ffffff; /* ensures section is white */
+}
+
+    .load-more-btn {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .load-more-btn:hover { background: #555; }
+    .offline-notice {
+      background: #ffcc00;
+      color: #000;
+      padding: 8px;
+      text-align: center;
+      font-size: 0.9em;
+    }
+
+    /* Navbar search visible on desktop */
+    .search-container {
+      display: flex;
+      align-items: center;
+      margin-left: 20px;
+    }
+    .search-container input {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      outline: none;
+      width: 200px;
+    }
+    @media (max-width: 768px) {
+      .search-container { display: none; }
+      #search-dropdown { display: block; position: absolute; top: 60px; right: 20px; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 5px 10px; z-index: 100; }
+    }
+
+    .recent-poems-section {
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+.recent-poems-container {
+  width: 70%;
+  max-width: 100%;
+  margin: 0 0 0 20%;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px; /* space between cards */
+  box-sizing: border-box;
+  background-color: #ffffff; /* makes the gaps white */
+  padding: 10px; /* optional, gives a small padding around cards */
+}
+
+
+/* Small screens: slightly shifted right and smaller gaps */
+@media (max-width: 768px) {
+  .recent-poems-container {
+    width: 100%;
+    margin: 0 0 0 5%; /* small shift to the right */
+    gap: 5px; /* reduced gap between cards */
+  }
+}
+
+
+
+/* Card hover effect */
+.recent-poem-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 24px rgba(0,0,0,0.12);
+ 
+}
+
+/* Poem Title */
+.recent-poem-card .poem-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+  color: var(--primary);
+}
+
+/* Poem Content */
+.recent-poem-card .poem-content {
+  white-space: pre-line;
+  margin-bottom: 10px;
+}
+
+/* Read More / Show Less */
+.read-more-btn {
+  background: none;
+  border: none;
+  color: #960606;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.read-more-btn:hover { color: #ff0000; }
+
+/* Poem Content */
+.poem-content {
+  font-size: 1rem;    /* larger readable content */
+  line-height: 1.5;     /* better spacing */
+  margin-bottom: 10px;
+}
+
+/* Individual Poem Card */
+.recent-poem-card {
+  background: linear-gradient(160deg, #fdf6f0, #e2e9f0);
+  color: #4b3f2f;
+}
+
+.recent-poem-title {
+  color: var(--primary); /* or replace with any color you want, e.g., #4b2aad */
+}
+
+/* Show logo on large screens */
+.nav-logo-img {
+  display: inline-block;
+  width: 40px; /* adjust size */
+  height: auto;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+/* Ensure logo and text stay inline */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Logo text styling */
+.logo-text {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1.3rem;
+  white-space: nowrap;
+}
+
+/* Logo container */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* smaller gap brings image closer to text */
+}
+
+/* Logo image */
+.nav-logo-img {
+  width: 40px;       /* adjust as needed */
+  height: auto;
+  margin: 0;         /* remove any extra margin */
+  vertical-align: middle;
+}
+
+/* Logo text */
+.logo-text {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1.8rem;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+
+@media (max-width: 768px) {
+  /* Logo image on small screens */
+  .nav-logo-img {
+    width: 30px;       /* smaller size for mobile */
+    height: auto;
+    margin: 0;
+    vertical-align: middle;
+  }
+
+  /* Logo text on small screens */
+  .logo-text {
+    font-size: 1.9rem;  /* reduce text size for mobile */
+    line-height: 1.1;   /* slightly looser spacing for readability */
+  }
+
+  /* Optional: adjust highlighted part */
+  .logo-highlight {
+    font-size: 1.7rem;  /* slightly bigger than surrounding text */
+    font-weight: 800;
+  }
+
+    /* "Poetry" part (normal text inside .logo-text) */
+  .logo-text:not(.logo-highlight) {
+    font-size: 1.7rem;  /* slightly smaller than "Volant" */
+       line-height: 1.1;   /* slightly looser spacing for readability */
+  }
+}
+
+/* SEARCH CONTAINER */
+    .search-container {
+      flex-grow: 1;
+      max-width: 200px;
+    }
+
+    .search-container input {
+      width: 100%;
+      padding: 0.45rem 0.2rem;
+      border: 1px solid #ddd;
+      border-radius: 40px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    .search-container input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(75,42,173,0.1);
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Volant Poetry",
+    "url": "https://volantpoetry.github.io/index.html",
+    "author": {
+      "@type": "Person",
+      "name": "Rence Blunt",
+      "url": "https://volantpoetry.github.io/about.html",
+      "image": "https://volantpoetry.github.io/images/renceblunt.jpg"
+    }
+  }
+  </script>
+</head>
+<body>
+
+<!-- Navbar -->
+<header>
+  <nav>
+    <div class="logo">
+      <img src="images/logo.png" alt="Volant Poetry Small Logo" class="nav-logo-img">
+      <span class="logo-text">
+        <span class="logo-highlight">Volant</span> Poetry
+      </span>
+    </div>
+
+    <!-- Desktop search -->
+    <div class="search-container">
+      <input type="text" placeholder="Search poems, authors..." id="navbar-search" />
+    </div>
+
+    <div class="nav-links" id="nav-links">
+      <span class="close-btn" id="close-btn">✕</span>
+      <a href="index.html">Home</a>
+      <a href="poems.html">Poems</a>
+      <a href="authors.html">Authors</a>
+      <a href="about.html">About</a>
+      <a href="submit.html">Submit</a>
+    </div>
+
+    <div class="nav-right">
+      <div class="search-toggle" id="search-toggle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M10.5 3a7.5 7.5 0 015.9 12.09l3.7 3.7a1 1 0 01-1.42 1.42l-3.7-3.7A7.5 7.5 0 1110.5 3z"/>
+        </svg>
+      </div>
+      <div class="menu-toggle" id="menu-toggle">☰</div>
+    </div>
+
+    <!-- Mobile search dropdown -->
+    <div class="search-dropdown" id="search-dropdown">
+      <input type="text" placeholder="Search poems, authors..." />
+    </div>
+  </nav>
+</header>
+
+<!-- Recent Poems Section -->
+<section class="recent-poems-section" style="position: relative;">
+  <div class="poem-header">
+
+  </div>
+
+  <p class="poem-subtitle">
+    Discover a growing collection of verses — arranged alphabetically so you can wander through words with ease.
+  </p>
+
+  <div id="recent-poems-container" class="recent-poems-container">
+    <p>Loading recent poems...</p>
+  </div>
+
+  <button id="load-more-poems" class="load-more-btn" style="display:none;">Load More</button>
+  <p id="last-synced" style="text-align:center; font-size:0.9em; color:gray;"></p>
+</section>
+
+<!-- Firebase + App JS -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc, enableIndexedDbPersistence, startAfter, updateDoc, increment, addDoc, arrayUnion, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyC4DHI8aBVY4JjTvJ-r-TGIDPsewtEWxzU",
+  authDomain: "silent-depth.firebaseapp.com",
+  projectId: "silent-depth",
+  storageBucket: "silent-depth.appspot.com",
+  messagingSenderId: "78008755450",
+  appId: "1:78008755450:web:3fd0f0f298a08820935543"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth();
+
+// Offline persistence
+enableIndexedDbPersistence(db).catch(err => console.warn("Persistence error:", err.code));
+
+// DOM references
+const container = document.getElementById("recent-poems-container");
+const loadMoreBtn = document.getElementById("load-more-poems");
+const sortSelect = document.getElementById("sort-poems");
+
+// Search: use navbar on desktop, dropdown on mobile
+const navbarSearch = document.getElementById("navbar-search");
+const mobileSearch = document.querySelector("#search-dropdown input");
+
+// State
+let allPoems = [];
+let lastVisible = null;
+let reachedEnd = false;
+const poemsPerPage = 10;
+
+// ---------------- Helper ----------------
+function truncatePoem(text, lines=8){
+  const allLines = text.split(/\r?\n/);
+  if(allLines.length <= lines) return { preview: text, full: text, truncated: false };
+  return { preview: allLines.slice(0, lines).join("\n"), full: text, truncated: true };
+}
+
+// ---------------- Render Poem ----------------
+async function renderPoemCard(poem, docId){
+  const card = document.createElement("div");
+  card.className = "recent-poem-card";
+  card.dataset.id = docId;
+
+  const truncated = truncatePoem(poem.content, 8);
+  const likes = typeof poem.likes === "number" ? poem.likes : 0;
+
+  card.innerHTML = `
+    <h3 class="recent-poem-title">${poem.title}</h3>
+    <p class="poem-content">${truncated.preview}</p>
+
+    ${truncated.truncated ? `<button class="read-more-btn">Read More</button>` : ""}
+
+    ${poem.categories && poem.categories.length > 0
+      ? `<p class="poem-category-line"><em>${poem.categories.join(", ")}</em></p>`
+      : ""
+    }
+
+    ${poem.author ? `<span class="author">– ${poem.author}</span>` : ""}
+
+    <div class="poem-actions">
+      <div class="comment-section">
+        <textarea class="comment-input" placeholder="Write a comment..." rows="1"></textarea>
+        <button class="comment-btn">Post</button>
+      </div>
+      <button class="like-btn">❤️</button>
+      <span class="like-count">${likes}</span>
+      <span class="message-count">💬 0</span>
+    </div>
+
+    <div class="comment-list" style="display:none;"></div>
+  `;
+
+  container.appendChild(card);
+
+  const user = auth.currentUser;
+  if(user){
+    const likedBy = Array.isArray(poem.likedBy) ? poem.likedBy : [];
+    if(likedBy.includes(user.uid)){
+      card.querySelector(".like-btn").classList.add("liked");
+    }
+  }
+
+  if(truncated.truncated){
+    const btn = card.querySelector(".read-more-btn");
+    const p = card.querySelector(".poem-content");
+    btn.addEventListener("click", ()=>{
+      if(btn.textContent==="Read More"){
+        p.innerHTML = truncated.full.replace(/\n/g,"<br>");
+        btn.textContent="Show Less";
+      } else {
+        p.innerHTML = truncated.preview.replace(/\n/g,"<br>");
+        btn.textContent="Read More";
+      }
+    });
+  }
+
+  const commentsSnapshot = await getDocs(collection(db,"recentPoems",docId,"comments"));
+  card.querySelector(".message-count").textContent = `💬 ${commentsSnapshot.size}`;
+}
+
+// ---------------- Load Poems ----------------
+async function updatePoemCount() {
+  const colRef = collection(db, "recentPoems");
+  const snapshot = await getCountFromServer(colRef);
+  const total = snapshot.data().count;
+  document.getElementById("poem-count-title").textContent = `All Poems (${total})`;
+}
+
+async function loadRecentPoems(initial=false){
+  if(reachedEnd) return;
+
+  const colRef = collection(db, "recentPoems");
+  let q;
+
+  if(!lastVisible || initial){
+    q = query(colRef, orderBy("title","asc"), limit(poemsPerPage));
+    if(initial){
+      container.innerHTML="";
+      lastVisible = null;
+      reachedEnd = false;
+      allPoems = [];
+    }
+  } else {
+    q = query(colRef, orderBy("title","asc"), startAfter(lastVisible), limit(poemsPerPage));
+  }
+
+  const snapshot = await getDocs(q);
+  if(snapshot.empty){
+    reachedEnd = true;
+    loadMoreBtn.style.display="none";
+    return;
+  }
+
+  for(const docSnap of snapshot.docs){
+    const poem = docSnap.data();
+    allPoems.push({...poem, id: docSnap.id});
+  }
+
+  allPoems.sort((a,b) => a.title.localeCompare(b.title));
+
+  container.innerHTML = "";
+  allPoems.forEach(p => renderPoemCard(p, p.id));
+
+  lastVisible = snapshot.docs[snapshot.docs.length-1];
+  loadMoreBtn.style.display = snapshot.size < poemsPerPage ? "none" : "block";
+}
+
+// ---------------- Sort + Search ----------------
+function setupSearch(inputEl){
+  inputEl.addEventListener("input", async () => {
+    const q = inputEl.value.trim().toLowerCase();
+
+    if (q === "") {
+      container.innerHTML = "";
+      allPoems = [];
+      await loadRecentPoems(true);
+      return;
+    }
+
+    const localMatches = allPoems.filter(poem =>
+      poem.title.toLowerCase().includes(q) ||
+      (poem.content && poem.content.toLowerCase().includes(q)) ||
+      (poem.categories && poem.categories.join(", ").toLowerCase().includes(q))
+    );
+
+    const colRef = collection(db, "recentPoems");
+    const snapshot = await getDocs(query(colRef, orderBy("title")));
+
+    const remoteMatches = [];
+    snapshot.forEach(docSnap => {
+      const poem = docSnap.data();
+      const id = docSnap.id;
+      if (
+        poem.title.toLowerCase().includes(q) ||
+        (poem.content && poem.content.toLowerCase().includes(q)) ||
+        (poem.categories && poem.categories.join(", ").toLowerCase().includes(q))
+      ) {
+        if (!localMatches.some(p => p.id === id)) {
+          remoteMatches.push({ ...poem, id });
+        }
+      }
+    });
+
+    const results = [...localMatches, ...remoteMatches];
+    container.innerHTML = "";
+    if (results.length === 0) {
+      container.innerHTML = `<p style="text-align:center;">No poems found for "<strong>${q}</strong>".</p>`;
+      return;
+    }
+    results.forEach(p => renderPoemCard(p, p.id));
+  });
+}
+
+setupSearch(navbarSearch);
+setupSearch(mobileSearch);
+
+// ---------------- Navbar Toggle ----------------
+document.getElementById("menu-toggle").addEventListener("click", ()=>document.getElementById("nav-links").classList.toggle("show"));
+document.querySelectorAll("#nav-links a").forEach(link=>link.addEventListener("click",()=>document.getElementById("nav-links").classList.remove("show")));
+document.getElementById("search-toggle").addEventListener("click", ()=>{
+  document.getElementById("search-dropdown").classList.toggle("show");
+});
+
+// ---------------- Offline Notice ----------------
+window.addEventListener("offline", ()=>{ 
+  const notice = document.createElement("div");
+  notice.className="offline-notice";
+  notice.textContent="⚠ You are offline. Viewing cached content.";
+  document.body.prepend(notice);
+});
+window.addEventListener("online", ()=>document.querySelectorAll(".offline-notice").forEach(n=>n.remove()));
+
+// ---------------- Auth State ----------------
+onAuthStateChanged(auth,user=>{});
+
+// ---------------- Init ----------------
+document.addEventListener("DOMContentLoaded", ()=> {
+  updatePoemCount();
+  loadRecentPoems(true);
+  loadMoreBtn.addEventListener("click", ()=>loadRecentPoems(false));
+});
+</script>
+
+<script>// ---------------- Init ----------------
+document.addEventListener("DOMContentLoaded", ()=> {
+  updatePoemCount();
+  loadRecentPoems(true);
+  loadMoreBtn.addEventListener("click", ()=>loadRecentPoems(false));
+});
+
+// --- Close button functionality ---
+document.getElementById("close-btn").addEventListener("click", () => {
+  document.getElementById("nav-links").classList.remove("show");
+});
+</script>
+</script>
+</body>
+</html>
