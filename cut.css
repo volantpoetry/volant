@@ -1,0 +1,88 @@
+  #nav-links {
+    position: fixed;       /* cover entire viewport */
+    top: 0;                /* start at top (cover header too) */
+    left: 0;
+    width: 100%;
+    height: 100%;          /* full height */
+    background-color: #fff; /* or your desired menu background */
+    display: none;         /* hidden by default */
+    flex-direction: column;
+    padding-top: 80px;     /* adjust spacing if needed */
+    z-index: 1000;         /* on top of all content */
+    overflow-y: auto;      /* scroll if menu is taller than screen */
+  }
+
+  #nav-links.show {
+    display: flex;         /* show when toggle clicked */
+  }
+
+
+
+  
+/* Menu toggle container for small screens */
+@media (max-width: 480px) {
+  #nav-links {
+    position: absolute;      /* overlay over content */
+    top: 60px;               /* below header */
+    left: 0;
+    right: 0;                /* stretch to full width */
+    width: 100%;             /* full width */
+    background-color: #fff;  /* or your menu bg color */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 1000;           /* ensure it’s on top */
+    display: none;           /* hidden by default */
+    flex-direction: column;  /* vertical menu */
+    padding: 10px 0;
+  }
+
+  #nav-links.show {
+    display: flex;           /* show when toggle clicked */
+  }
+
+  #logout-btn-mobile {
+    display: block;
+    width: 100%;             /* full width under menu items */
+    padding: 12px 20px;
+    color: red;
+    background: none;
+    border: none;
+    text-align: left;
+    margin-top: 10px;
+  }
+}
+
+
+/* MOBILE LOGOUT FOR SMALLER SCREENS (<=480px) */
+@media (max-width: 480px) {
+  .logout-btn-mobile {
+    display: block;
+    margin-top: 10px;
+    padding: 10px 16px;
+    background: #ff4b4b;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  /* Menu container */
+  #nav-links.show {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 90%;       /* almost full width */
+    padding: 10px;    /* small padding around links */
+  }
+
+  #nav-links a,
+  .logout-btn-mobile {
+    width: 100%;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    font-size: 0.9rem;
+  }
+}
