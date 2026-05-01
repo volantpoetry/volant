@@ -636,18 +636,56 @@
     }
 
     @media (max-width: 480px) {
+      .poem-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+      }
+      .comment-section {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+        width: 100% !important;
+      }
+      .comment-input {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+      .comment-btn {
+        flex-shrink: 0 !important;
+      }
+      .like-container,
+      .message-count {
+        width: 100% !important;
+        justify-content: flex-start !important;
+      }
       .read-more-btn,
       .poem-category-line em,
       .poem-category {
-        margin-left: -10px !important;
+        font-size: 0.75rem !important;
+        margin-left: 0 !important;
       }
       .poem-category-line em,
       .poem-category {
         position: relative !important;
-        top: -23px !important;
+        top: 0 !important;
       }
-      .read-more-btn {
-        font-size: 0.65rem !important;
+      .recent-poem-title {
+        font-size: 1.1rem !important;
+      }
+      .author-img {
+        width: 56px !important;
+        height: 56px !important;
+      }
+      .comment-list {
+        width: calc(100% - 12px) !important;
+        margin: 0 auto 16px !important;
+        padding: 10px 8px !important;
+      }
+      .comment-list .comment {
+        font-size: 0.95rem !important;
+        padding: 8px 10px !important;
       }
     }
 
@@ -1037,14 +1075,19 @@ async function loadRenceBluntRecentPoems() {
         <p class="poem-content" style="white-space:pre-wrap; line-height:1.6;">${truncated.preview.replace(/\n/g, "<br>")}</p>
         ${truncated.truncated ? `<button class="read-more-btn" style="background:none; border:none; color:#b87c4a; cursor:pointer; margin:8px 0; font-style:italic;">Read More</button>` : ""}
         ${poem.categories?.length ? `<p class="poem-category-line"><em style="color:#b8860b;">${poem.categories.join(", ")}</em></p>` : ""}
-        <div class="poem-actions" style="display:flex; gap:15px; margin-top:15px;">
+        <div class="poem-actions" style="display:flex; gap:15px; margin-top:15px; align-items:center;">
           <div class="comment-section" style="display:flex; gap:10px; flex:1;">
             <textarea class="comment-input" placeholder="Write a comment..." rows="1" style="flex:1; padding:8px; border-radius:20px; border:1px solid #ddd; resize:vertical;"></textarea>
             <button class="comment-btn" style="background:#4b2aad; color:white; border:none; border-radius:20px; padding:8px 16px; cursor:pointer;">Post</button>
           </div>
-          <button class="like-btn" style="background:none; border:none; font-size:1.2rem; cursor:pointer;">❤️</button>
-          <span class="like-count">${likes}</span>
-          <span class="message-count" style="cursor:pointer;">💬 ${commentsCount}</span>
+          <div class="like-container" style="display:flex; align-items:center; gap:4px;">
+            <button class="like-btn" style="background:none; border:none; font-size:1.2rem; cursor:pointer;">❤️</button>
+            <span class="like-count" style="font-weight:600;">${likes}</span>
+          </div>
+          <div class="message-count" style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+            <span>💬</span>
+            <span class="comment-count" style="font-weight:600;">${commentsCount}</span>
+          </div>
         </div>
       `;
       
