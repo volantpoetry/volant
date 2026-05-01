@@ -636,54 +636,65 @@
     }
 
     @media (max-width: 480px) {
-      .poem-actions {
+      .recent-poem-card .poem-actions {
         flex-direction: column !important;
         align-items: stretch !important;
         gap: 10px !important;
       }
-      .comment-section {
+      .recent-poem-card .comment-section {
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: wrap !important;
-        gap: 10px !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 8px !important;
         width: 100% !important;
       }
-      .comment-input {
+      .recent-poem-card .comment-input {
         width: 100% !important;
         min-width: 0 !important;
+        flex: 1 1 auto !important;
+        padding: 8px 10px !important;
       }
-      .comment-btn {
+      .recent-poem-card .comment-btn {
         flex-shrink: 0 !important;
+        padding: 8px 12px !important;
+        font-size: 0.85rem !important;
       }
-      .like-container,
-      .message-count {
-        width: 100% !important;
+      .recent-poem-card .like-container,
+      .recent-poem-card .message-count {
+        display: flex !important;
+        align-items: center !important;
         justify-content: flex-start !important;
+        gap: 6px !important;
+        width: 100% !important;
       }
-      .read-more-btn,
-      .poem-category-line em,
-      .poem-category {
-        font-size: 0.75rem !important;
+      .recent-poem-card .like-btn {
+        padding: 6px 8px !important;
+      }
+      .recent-poem-card .read-more-btn,
+      .recent-poem-card .poem-category-line em,
+      .recent-poem-card .poem-category {
+        font-size: 0.92rem !important;
         margin-left: 0 !important;
       }
-      .poem-category-line em,
-      .poem-category {
+      .recent-poem-card .poem-category-line em,
+      .recent-poem-card .poem-category {
         position: relative !important;
         top: 0 !important;
       }
-      .recent-poem-title {
-        font-size: 1.1rem !important;
+      .recent-poem-card .recent-poem-title {
+        font-size: 1.2rem !important;
       }
-      .author-img {
-        width: 56px !important;
-        height: 56px !important;
+      .recent-poem-card .author-img {
+        width: 64px !important;
+        height: 64px !important;
       }
-      .comment-list {
+      .recent-poem-card .comment-list {
         width: calc(100% - 12px) !important;
         margin: 0 auto 16px !important;
         padding: 10px 8px !important;
       }
-      .comment-list .comment {
+      .recent-poem-card .comment-list .comment {
         font-size: 0.95rem !important;
         padding: 8px 10px !important;
       }
