@@ -62,6 +62,20 @@ function escapeHtml(str) {
 let lastVisible = null;
 let reachedEnd = false;
 
+// Helper function to redirect to login with return URL
+function redirectToLogin() {
+  const currentPage = window.location.href;
+  localStorage.setItem('redirectAfterLogin', currentPage);
+  window.location.href = `users-login.html?redirect=${encodeURIComponent(currentPage)}`;
+}
+
+// Helper function to redirect to signup with return URL
+function redirectToSignup() {
+  const currentPage = window.location.href;
+  localStorage.setItem('redirectAfterSignup', currentPage);
+  window.location.href = `users-signup.html?redirect=${encodeURIComponent(currentPage)}`;
+}
+
 // --- Structured Data Injection for SEO ---
 function addPoemSchema(poem) {
   document.querySelectorAll('script[type="application/ld+json"].poem-schema').forEach(el => el.remove());
@@ -511,7 +525,10 @@ document.addEventListener("click", async (e) => {
 
   // LIKE / UNLIKE
   if (e.target.classList.contains("like-btn")) {
-    if (!user) { alert("Please sign in to like poems!"); return; }
+    if (!user) { 
+      redirectToLogin();
+      return; 
+    }
     const card = e.target.closest(".recent-poem-card");
     const docId = card.dataset.id;
     const countSpan = card.querySelector(".like-count");
@@ -539,7 +556,7 @@ document.addEventListener("click", async (e) => {
   // COMMENT POST
   if (e.target.classList.contains("comment-btn")) {
     if (!user) { 
-      alert("Please sign in to comment!"); 
+      redirectToLogin();
       return; 
     }
 
