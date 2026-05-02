@@ -1,1 +1,272 @@
-﻿<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="robots" content="noindex, nofollow"><title>Category | Volant Poetry</title><link rel="stylesheet" href="style.css"><link rel="icon" type="png" href="images/logo.png" /></head><body><header><nav><div class="logo"><img src="images/logo.png" alt="Volant Poetry Logo" class="nav-logo-img"><span class="logo-text"><span class="logo-highlight">Volant</span> Poetry </span></div><div class="nav-links" id="nav-links"><span class="close-btn" id="close-btn">âœ•</span><a href="index.html">Home</a><a href="about.html">About</a><a href="contact.html">Contact Us</a></div><div class="nav-right"><div class="mobile-icons"><div class="menu-toggle" id="menu-toggle">â˜°</div></div></div></nav></header><section class="recent-poems-section"><h2 class="category-header" id="category-title"></h2><div id="recent-poems-container" class="recent-poems-container"><p></p></div></section><script type="module"> import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"; import { getFirestore, collection, query, where, getDocs, doc, getDoc, updateDoc, increment, arrayUnion, orderBy, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"; import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"; const firebaseConfig = { apiKey: "AIzaSyC4DHI8aBVY4JjTvJ-r-TGIDPsewtEWxzU", authDomain: "silent-depth.firebaseapp.com", projectId: "silent-depth", storageBucket: "silent-depth.appspot.com", messagingSenderId: "78008755450", appId: "1:78008755450:web:3fd0f0f298a08820935543" }; const app = initializeApp(firebaseConfig); const db = getFirestore(app); const auth = getAuth(); let currentUser = null; onAuthStateChanged(auth, user => { currentUser = user; }); const container = document.getElementById("recent-poems-container"); const urlParams = new URLSearchParams(window.location.search); const categoryName = urlParams.get("name") || "All"; document.getElementById("category-title").textContent = `Category: ${categoryName}`; function truncatePoem(text, lines=8){ const allLines = text.split(/\r?\n/); if(allLines.length <= lines) return { preview: text, full: text, truncated: false }; return { preview: allLines.slice(0, lines).join("\n"), full: text, truncated: true }; } async function renderPoemCard(poem, docId){ const card = document.createElement("div"); card.className = "recent-poem-card"; card.dataset.id = docId; const truncated = truncatePoem(poem.content, 8); card.innerHTML = ` <h3>${poem.title}</h3><p class="poem-content">${truncated.preview.replace(/\n/g,"<br>")}</p> ${truncated.truncated ? `<button class="read-more-btn">Read More</button>` : ""} ${poem.author ? `<span class="author">â€“ ${poem.author}</span>` : ""} <div class="poem-actions"><div class="comment-section"><textarea class="comment-input" placeholder="Write a comment..." rows="1"></textarea><button class="comment-btn">Post</button></div><button class="like-btn">â¤ï¸</button><span class="like-count">0</span><span class="message-count">ðŸ’¬ 0</span></div><div class="comment-list"></div> `; container.appendChild(card); // Read More toggle if(truncated.truncated){ const btn = card.querySelector(".read-more-btn"); const p = card.querySelector(".poem-content"); btn.addEventListener("click", ()=>{ if(btn.textContent==="Read More"){ p.innerHTML = truncated.full.replace(/\n/g,"<br>"); btn.textContent="Show Less"; } else { p.innerHTML = truncated.preview.replace(/\n/g,"<br>"); btn.textContent="Read More"; } }); } const poemRef = doc(db, "recentPoems", docId); // Live likes onSnapshot(poemRef, snap=>{ if(!snap.exists()) return; const data = snap.data(); const likes = data.likes || 0; const likedBy = Array.isArray(data.likedBy)? data.likedBy : []; card.querySelector(".like-count").textContent = likes; if(currentUser && likedBy.includes(currentUser.uid)){ card.querySelector(".like-btn").classList.add("liked"); } else { card.querySelector(".like-btn").classList.remove("liked"); } }); // Initial comment count const commentsCol = collection(db,"recentPoems",docId,"comments"); const commentsSnapshot = await getDocs(commentsCol); card.querySelector(".message-count").textContent = `ðŸ’¬ ${commentsSnapshot.size}`; } // Load poems in category async function loadCategoryPoems(){ let q = categoryName==="All"? collection(db,"recentPoems") : query(collection(db,"recentPoems"), where("categories","array-contains",categoryName)); const snapshot = await getDocs(q); container.innerHTML = ""; if(snapshot.empty){ container.innerHTML = `<p>No poems found in "${categoryName}" category.</p>`; return; } for(const docSnap of snapshot.docs){ await renderPoemCard(docSnap.data(), docSnap.id); } } // Likes, comments, toggle document.addEventListener("click", async e=>{ const card = e.target.closest(".recent-poem-card"); if(!card) return; const docRefPoem = doc(db,"recentPoems",card.dataset.id); // Like button if(e.target.classList.contains("like-btn")){ if(!currentUser){ alert("Sign in to like poems!"); return; } const docSnap = await getDoc(docRefPoem); if(!docSnap.exists()) return; const data = docSnap.data(); const likedBy = Array.isArray(data.likedBy)?data.likedBy:[]; if(likedBy.includes(currentUser.uid)){ await updateDoc(docRefPoem,{ likes: increment(-1), likedBy: likedBy.filter(uid=>uid!==currentUser.uid) }); } else { await updateDoc(docRefPoem,{ likes: increment(1), likedBy: arrayUnion(currentUser.uid) }); } } // Post comment if(e.target.classList.contains("comment-btn")){ if(!currentUser){ alert("Sign in to comment!"); return; } const input = card.querySelector(".comment-input"); const text = input.value.trim(); if(!text) return; const commentRef = await addDoc(collection(db,"recentPoems",card.dataset.id,"comments"),{ userId: currentUser.uid, text, timestamp: new Date() }); input.value=""; // Append comment live const commentList = card.querySelector(".comment-list"); const div = document.createElement("div"); div.className = "comment"; div.textContent = `${currentUser.displayName || "Anonymous"}: ${text}`; commentList.insertBefore(div, commentList.firstChild); // update count const countSpan = card.querySelector(".message-count"); countSpan.textContent = `ðŸ’¬ ${parseInt(countSpan.textContent.replace("ðŸ’¬","").trim()) + 1}`; } // Toggle comments if(e.target.classList.contains("message-count")){ const commentList = card.querySelector(".comment-list"); if(commentList.style.display==="block"){ commentList.style.display="none"; return; } commentList.innerHTML = "<p>Loading comments...</p>"; const commentsCol = collection(db,"recentPoems",card.dataset.id,"comments"); const commentsSnapshot = await getDocs(query(commentsCol, orderBy("timestamp","desc"))); commentList.innerHTML = ""; for(const docSnap of commentsSnapshot.docs){ const c = docSnap.data(); let username = "Anonymous"; if(c.userId){ const userDoc = await getDoc(doc(db,"users",c.userId)); if(userDoc.exists()) username = userDoc.data()?.username || "Anonymous"; } const div = document.createElement("div"); div.className = "comment"; div.textContent = `${username}: ${c.text}`; commentList.appendChild(div); } commentList.style.display = "block"; } }); document.addEventListener("DOMContentLoaded", loadCategoryPoems); </script><script>function a0_0x1c6f(){const _0x597a37=['click','186945DUILKG','forEach','6274704WMCCoC','23537DKzGTb','2141805KUqPze','getElementById','12ugPmuE','show','remove','9634247nxTjSJ','4OQJiHd','8yUUGBV','690BKInTS','13086081hACGDk','sidebar-toggle','addEventListener','querySelectorAll','classList','771360JFtsDg','nav-links','.sidebar','12tniGFD','overlay','toggle','menu-toggle','querySelector'];a0_0x1c6f=function(){return _0x597a37;};return a0_0x1c6f();}function a0_0x59db(_0x2a929c,_0x24c212){_0x2a929c=_0x2a929c-0x1cb;const _0x1c6fa5=a0_0x1c6f();let _0x59db4f=_0x1c6fa5[_0x2a929c];return _0x59db4f;}const a0_0x377800=a0_0x59db;(function(_0x341ab8,_0x377572){const _0x4bb771=a0_0x59db,_0x176672=_0x341ab8();while(!![]){try{const _0x230104=-parseInt(_0x4bb771(0x1d0))/0x1*(-parseInt(_0x4bb771(0x1e2))/0x2)+parseInt(_0x4bb771(0x1d1))/0x3*(-parseInt(_0x4bb771(0x1d7))/0x4)+parseInt(_0x4bb771(0x1df))/0x5*(parseInt(_0x4bb771(0x1d3))/0x6)+-parseInt(_0x4bb771(0x1d6))/0x7*(-parseInt(_0x4bb771(0x1d8))/0x8)+parseInt(_0x4bb771(0x1da))/0x9+parseInt(_0x4bb771(0x1d9))/0xa*(-parseInt(_0x4bb771(0x1cd))/0xb)+-parseInt(_0x4bb771(0x1cf))/0xc;if(_0x230104===_0x377572)break;else _0x176672['push'](_0x176672['shift']());}catch(_0x110ce6){_0x176672['push'](_0x176672['shift']());}}}(a0_0x1c6f,0xd48d6),document[a0_0x377800(0x1dc)]('DOMContentLoaded',()=>{const _0x2238a8=a0_0x377800,_0x5afd60=document[_0x2238a8(0x1d2)](_0x2238a8(0x1e5)),_0x46cc1f=document[_0x2238a8(0x1d2)](_0x2238a8(0x1e0));_0x5afd60&&_0x46cc1f&&_0x5afd60[_0x2238a8(0x1dc)](_0x2238a8(0x1cc),()=>_0x46cc1f['classList'][_0x2238a8(0x1e4)](_0x2238a8(0x1d4))),_0x46cc1f[_0x2238a8(0x1dd)]('a')[_0x2238a8(0x1ce)](_0x438030=>{const _0x12bf50=_0x2238a8;_0x438030[_0x12bf50(0x1dc)]('click',()=>_0x46cc1f['classList'][_0x12bf50(0x1d5)](_0x12bf50(0x1d4)));});}));const sidebarToggle=document[a0_0x377800(0x1d2)](a0_0x377800(0x1db)),sidebar=document[a0_0x377800(0x1cb)](a0_0x377800(0x1e1)),overlay=document['getElementById'](a0_0x377800(0x1e3));sidebarToggle[a0_0x377800(0x1dc)]('click',()=>{const _0x5add84=a0_0x377800;sidebar['classList'][_0x5add84(0x1e4)](_0x5add84(0x1d4)),overlay[_0x5add84(0x1de)][_0x5add84(0x1e4)](_0x5add84(0x1d4));}),overlay[a0_0x377800(0x1dc)](a0_0x377800(0x1cc),()=>{const _0x5f299b=a0_0x377800;sidebar[_0x5f299b(0x1de)][_0x5f299b(0x1d5)](_0x5f299b(0x1d4)),overlay[_0x5f299b(0x1de)]['remove'](_0x5f299b(0x1d4));});</script><script>const a0_0x56aea6=a0_0xdcaf;function a0_0xdcaf(_0x1d1c9a,_0x4f8395){_0x1d1c9a=_0x1d1c9a-0x148;const _0x28f2a8=a0_0x28f2();let _0xdcaf2c=_0x28f2a8[_0x1d1c9a];return _0xdcaf2c;}function a0_0x28f2(){const _0x4858bf=['nav-links','menu-toggle','close-btn','forEach','DOMContentLoaded','getElementById','5986386VpTEWF','262670eiodoF','25902844hIGbSb','342bJiHlQ','941016piDvtf','15CVdxgj','click','remove','838QBHmVQ','4126264rUCvng','add','classList','56TCKAQd','19686MszVwp','addEventListener','show','28wJkSTe'];a0_0x28f2=function(){return _0x4858bf;};return a0_0x28f2();}(function(_0x8f894a,_0xc043ff){const _0x224c9b=a0_0xdcaf,_0x1c14d3=_0x8f894a();while(!![]){try{const _0x49075c=-parseInt(_0x224c9b(0x15e))/0x1*(-parseInt(_0x224c9b(0x15a))/0x2)+parseInt(_0x224c9b(0x148))/0x3*(parseInt(_0x224c9b(0x14b))/0x4)+parseInt(_0x224c9b(0x157))/0x5*(parseInt(_0x224c9b(0x156))/0x6)+-parseInt(_0x224c9b(0x152))/0x7+-parseInt(_0x224c9b(0x15b))/0x8+parseInt(_0x224c9b(0x155))/0x9*(-parseInt(_0x224c9b(0x153))/0xa)+parseInt(_0x224c9b(0x154))/0xb;if(_0x49075c===_0xc043ff)break;else _0x1c14d3['push'](_0x1c14d3['shift']());}catch(_0x4217b3){_0x1c14d3['push'](_0x1c14d3['shift']());}}}(a0_0x28f2,0x8050f),document[a0_0x56aea6(0x149)](a0_0x56aea6(0x150),()=>{const _0x2a9541=a0_0x56aea6,_0x4ddb91=document['getElementById'](_0x2a9541(0x14d)),_0x227273=document[_0x2a9541(0x151)](_0x2a9541(0x14c)),_0x3591a8=document['getElementById'](_0x2a9541(0x14e));_0x4ddb91&&_0x227273&&_0x4ddb91[_0x2a9541(0x149)](_0x2a9541(0x158),()=>_0x227273[_0x2a9541(0x15d)][_0x2a9541(0x15c)](_0x2a9541(0x14a))),_0x3591a8&&_0x227273&&_0x3591a8[_0x2a9541(0x149)](_0x2a9541(0x158),()=>_0x227273['classList'][_0x2a9541(0x159)]('show')),_0x227273['querySelectorAll']('a')[_0x2a9541(0x14f)](_0x44869f=>{const _0x5f0ee0=_0x2a9541;_0x44869f[_0x5f0ee0(0x149)](_0x5f0ee0(0x158),()=>_0x227273['classList'][_0x5f0ee0(0x159)](_0x5f0ee0(0x14a)));});}));</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow">
+<title>Category | Volant Poetry</title>
+<link rel="stylesheet" href="style.css">
+  <link rel="icon" type="png" href="images/logo.png" />
+</head>
+<body>
+
+<header>
+  <nav>
+    <div class="logo">
+      <img src="images/logo.png" alt="Volant Poetry Logo" class="nav-logo-img">
+      <span class="logo-text">
+        <span class="logo-highlight">Volant</span> Poetry
+      </span>
+    </div>
+
+    <div class="nav-links" id="nav-links">
+      <span class="close-btn" id="close-btn">✕</span>
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+       <a href="contact.html">Contact Us</a> <!-- ✅ New link -->
+    </div>
+<div class="nav-right">
+
+<!-- Mobile Icons -->
+    <div class="mobile-icons">
+
+      <div class="menu-toggle" id="menu-toggle">☰</div>
+    </div>
+  </div>
+</nav>
+</header>
+
+
+<section class="recent-poems-section">
+  <h2 class="category-header" id="category-title"></h2>
+  <div id="recent-poems-container" class="recent-poems-container">
+    <p></p>
+  </div>
+</section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getFirestore, collection, query, where, getDocs, doc, getDoc, updateDoc, increment, arrayUnion, orderBy, onSnapshot, addDoc 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC4DHI8aBVY4JjTvJ-r-TGIDPsewtEWxzU",
+  authDomain: "silent-depth.firebaseapp.com",
+  projectId: "silent-depth",
+  storageBucket: "silent-depth.appspot.com",
+  messagingSenderId: "78008755450",
+  appId: "1:78008755450:web:3fd0f0f298a08820935543"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth();
+
+let currentUser = null;
+onAuthStateChanged(auth, user => { currentUser = user; });
+
+const container = document.getElementById("recent-poems-container");
+const urlParams = new URLSearchParams(window.location.search);
+const categoryName = urlParams.get("name") || "All";
+document.getElementById("category-title").textContent = `Category: ${categoryName}`;
+
+function truncatePoem(text, lines=8){
+  const allLines = text.split(/\r?\n/);
+  if(allLines.length <= lines) return { preview: text, full: text, truncated: false };
+  return { preview: allLines.slice(0, lines).join("\n"), full: text, truncated: true };
+}
+
+async function renderPoemCard(poem, docId){
+  const card = document.createElement("div");
+  card.className = "recent-poem-card";
+  card.dataset.id = docId;
+  const truncated = truncatePoem(poem.content, 8);
+
+  card.innerHTML = `
+    <h3>${poem.title}</h3>
+    <p class="poem-content">${truncated.preview.replace(/\n/g,"<br>")}</p>
+    ${truncated.truncated ? `<button class="read-more-btn">Read More</button>` : ""}
+    ${poem.author ? `<span class="author">– ${poem.author}</span>` : ""}
+    <div class="poem-actions">
+      <div class="comment-section">
+        <textarea class="comment-input" placeholder="Write a comment..." rows="1"></textarea>
+        <button class="comment-btn">Post</button>
+      </div>
+      <button class="like-btn">❤️</button>
+      <span class="like-count">0</span>
+      <span class="message-count">💬 0</span>
+    </div>
+    <div class="comment-list"></div>
+  `;
+  container.appendChild(card);
+
+  // Read More toggle
+  if(truncated.truncated){
+    const btn = card.querySelector(".read-more-btn");
+    const p = card.querySelector(".poem-content");
+    btn.addEventListener("click", ()=>{
+      if(btn.textContent==="Read More"){
+        p.innerHTML = truncated.full.replace(/\n/g,"<br>");
+        btn.textContent="Show Less";
+      } else {
+        p.innerHTML = truncated.preview.replace(/\n/g,"<br>");
+        btn.textContent="Read More";
+      }
+    });
+  }
+
+  const poemRef = doc(db, "recentPoems", docId);
+
+  // Live likes
+  onSnapshot(poemRef, snap=>{
+    if(!snap.exists()) return;
+    const data = snap.data();
+    const likes = data.likes || 0;
+    const likedBy = Array.isArray(data.likedBy)? data.likedBy : [];
+    card.querySelector(".like-count").textContent = likes;
+    if(currentUser && likedBy.includes(currentUser.uid)){
+      card.querySelector(".like-btn").classList.add("liked");
+    } else {
+      card.querySelector(".like-btn").classList.remove("liked");
+    }
+  });
+
+  // Initial comment count
+  const commentsCol = collection(db,"recentPoems",docId,"comments");
+  const commentsSnapshot = await getDocs(commentsCol);
+  card.querySelector(".message-count").textContent = `💬 ${commentsSnapshot.size}`;
+}
+
+// Load poems in category
+async function loadCategoryPoems(){
+  let q = categoryName==="All"? collection(db,"recentPoems") : query(collection(db,"recentPoems"), where("categories","array-contains",categoryName));
+  const snapshot = await getDocs(q);
+  container.innerHTML = "";
+  if(snapshot.empty){ container.innerHTML = `<p>No poems found in "${categoryName}" category.</p>`; return; }
+  for(const docSnap of snapshot.docs){ await renderPoemCard(docSnap.data(), docSnap.id); }
+}
+
+// Likes, comments, toggle
+document.addEventListener("click", async e=>{
+  const card = e.target.closest(".recent-poem-card");
+  if(!card) return;
+  const docRefPoem = doc(db,"recentPoems",card.dataset.id);
+
+  // Like button
+  if(e.target.classList.contains("like-btn")){
+    if(!currentUser){ alert("Sign in to like poems!"); return; }
+    const docSnap = await getDoc(docRefPoem);
+    if(!docSnap.exists()) return;
+    const data = docSnap.data();
+    const likedBy = Array.isArray(data.likedBy)?data.likedBy:[];
+    if(likedBy.includes(currentUser.uid)){
+      await updateDoc(docRefPoem,{ likes: increment(-1), likedBy: likedBy.filter(uid=>uid!==currentUser.uid) });
+    } else {
+      await updateDoc(docRefPoem,{ likes: increment(1), likedBy: arrayUnion(currentUser.uid) });
+    }
+  }
+
+  // Post comment
+  if(e.target.classList.contains("comment-btn")){
+    if(!currentUser){ alert("Sign in to comment!"); return; }
+    const input = card.querySelector(".comment-input");
+    const text = input.value.trim();
+    if(!text) return;
+
+    const commentRef = await addDoc(collection(db,"recentPoems",card.dataset.id,"comments"),{
+      userId: currentUser.uid,
+      text,
+      timestamp: new Date()
+    });
+    input.value="";
+
+    // Append comment live
+    const commentList = card.querySelector(".comment-list");
+    const div = document.createElement("div");
+    div.className = "comment";
+    div.textContent = `${currentUser.displayName || "Anonymous"}: ${text}`;
+    commentList.insertBefore(div, commentList.firstChild);
+    // update count
+    const countSpan = card.querySelector(".message-count");
+    countSpan.textContent = `💬 ${parseInt(countSpan.textContent.replace("💬","").trim()) + 1}`;
+  }
+
+  // Toggle comments
+  if(e.target.classList.contains("message-count")){
+    const commentList = card.querySelector(".comment-list");
+    if(commentList.style.display==="block"){ commentList.style.display="none"; return; }
+
+    commentList.innerHTML = "<p>Loading comments...</p>";
+    const commentsCol = collection(db,"recentPoems",card.dataset.id,"comments");
+    const commentsSnapshot = await getDocs(query(commentsCol, orderBy("timestamp","desc")));
+    commentList.innerHTML = "";
+    for(const docSnap of commentsSnapshot.docs){
+      const c = docSnap.data();
+      let username = "Anonymous";
+      if(c.userId){
+        const userDoc = await getDoc(doc(db,"users",c.userId));
+        if(userDoc.exists()) username = userDoc.data()?.username || "Anonymous";
+      }
+      const div = document.createElement("div");
+      div.className = "comment";
+      div.textContent = `${username}: ${c.text}`;
+      commentList.appendChild(div);
+    }
+    commentList.style.display = "block";
+  }
+});
+
+document.addEventListener("DOMContentLoaded", loadCategoryPoems);
+</script>
+<script>
+// Navbar toggle (mobile)
+document.addEventListener("DOMContentLoaded", () => {
+  const toggle = document.getElementById("menu-toggle");
+  const navLinks = document.getElementById("nav-links");
+  if (toggle && navLinks) {
+    toggle.addEventListener("click", () => navLinks.classList.toggle("show"));
+  }
+  // Close menu on link click
+  navLinks.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => navLinks.classList.remove("show"));
+  });
+});
+
+// Sidebar toggle with overlay
+const sidebarToggle = document.getElementById("sidebar-toggle");
+const sidebar = document.querySelector(".sidebar");
+const overlay = document.getElementById("overlay");
+
+sidebarToggle.addEventListener("click", () => {
+  sidebar.classList.toggle("show");
+  overlay.classList.toggle("show");
+});
+overlay.addEventListener("click", () => {
+  sidebar.classList.remove("show");
+  overlay.classList.remove("show");
+});
+</script>
+<script>// Navbar toggle (mobile)
+document.addEventListener("DOMContentLoaded", () => {
+  const toggle = document.getElementById("menu-toggle");
+  const navLinks = document.getElementById("nav-links");
+  const closeBtn = document.getElementById("close-btn");
+
+  if (toggle && navLinks) {
+    toggle.addEventListener("click", () => navLinks.classList.add("show"));
+  }
+
+  if (closeBtn && navLinks) {
+    closeBtn.addEventListener("click", () => navLinks.classList.remove("show"));
+  }
+
+  // Close menu when clicking a link
+  navLinks.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => navLinks.classList.remove("show"));
+  });
+});
+</script>
+</body>
+</html>
