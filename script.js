@@ -380,7 +380,11 @@ async function loadPoemsBatch() {
         ${truncated.truncated ? `<button class="read-more-btn">Read More</button>` : ""}
 
         ${poem.categories?.length
-          ? `<p class="poem-category-line"><em>${poem.categories.join(", ")}</em></p>`
+          ? `<p class="poem-category-line"><em>${
+              poem.categories.map(cat => 
+                `<a href="category.html?name=${encodeURIComponent(cat)}" class="category-link">${cat}</a>`
+              ).join(", ")
+            }</em></p>`
           : ""
         }
 
