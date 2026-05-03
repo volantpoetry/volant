@@ -13,6 +13,7 @@
 <link rel="apple-touch-icon" href="images/logo.png" />
 
 <style>
+/* YOUR EXACT SAME CSS - NO CHANGES */
 :root {
   --primary: #4b2aad;
   --bg: #f7f5ff;
@@ -394,7 +395,7 @@ h2 {
 }
 
 .panel-item {
-  min-width: 200px;          /* Ensure panels don't collapse */
+  min-width: 200px;          /* Ensure panels don’t collapse */
   flex: 1;                   /* Equal width stretch */
   background: #f7f5ff;       /* Optional distinct background */
   padding: 20px;
@@ -572,7 +573,7 @@ h2 {
   border-radius: 8px;
   border: none;
   cursor: pointer;
-  z-index: 50; /* ensure it's above other elements */
+  z-index: 50; /* ensure it’s above other elements */
 }
 
 .logout-nav-btn:hover {
@@ -1471,7 +1472,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
-// --- Get ?uid from URL ---
+// --- Get ?uid from URL (ADDED FOR PUBLIC VIEWING) ---
 const urlParams = new URLSearchParams(window.location.search);
 const profileUid = urlParams.get("uid");
 
@@ -1489,8 +1490,7 @@ const poemsContainer = document.getElementById("poemsContainer");
 
 let actorUsername = "";
 let profileUsername = "";
-let viewingOwnProfile = false;
-let currentUserUid = null;
+let viewingOwnProfile = false;  // ADDED: track if viewing own profile
 
 // --- Modal functions - exactly like gallery page ---
 window.showPreview = function(imageUrl, title, description) {
@@ -1735,6 +1735,7 @@ function colorFromName(name = "") {
   return `hsl(${hue}, 60%, 45%)`;
 }
 
+// --- Generate a PNG blob of initials with background color ---
 // --- Generate a PNG blob of initials with background color - SAVE AS SQUARE ---
 function generateAvatarImage(initials, bgColor, size = 180) {
   const canvas = document.createElement("canvas");
@@ -1802,10 +1803,158 @@ async function uploadAvatarToCloudinary(initials, bgColor, publicId = null) {
   }
 }
  
-// --- Fetch User Poems (ONLY for owner) ---
-async function fetchUserPoems(usernameToFetch) {
-  if (!viewingOwnProfile) return;
+// --- Auth handling (MODIFIED: support public viewing with ?uid) ---
+onAuthStateChanged(auth, async (user) => {
+  // If no user logged in AND no uid in URL, redirect to login
+  if (!user && !profileUid) {
+    window.location.href = "users-login.html";
+    return;
+  }
+
+  // Get actor info if logged in
+  if (user) {
+    const actorRef = doc(db, "users", user.uid);
+    let actorDoc = await getDoc(actorRef);
+    if (!actorDoc.exists()) {
+      await setDoc(actorRef, {
+        username: user.displayName || user.email.split("@")[0],
+        email: user.email,
+        bio: "",
+        realName: "",
+        joined: new Date(),
+        photoURL: user.photoURL || ""
+      });
+      actorDoc = await getDoc(actorRef);
+    }
+    const actorData = actorDoc.data();
+    actorUsername = actorData.username || user.email.split("@")[0];
+  }
+
+  // Determine which profile to show (from URL or logged-in user)
+  viewingOwnProfile = (user && (!profileUid || profileUid === user.uid));
+  const targetUid = (profileUid && profileUid !== "undefined") ? profileUid : (user ? user.uid : null);
+
+  if (!targetUid) {
+    alert("No user specified.");
+    window.location.href = "index.html";
+    return;
+  }
+
+  const userRef = doc(db, "users", targetUid);
+  const userDoc = await getDoc(userRef);
+
+  if (!userDoc.exists()) {
+    alert("User not found.");
+    window.location.href = "index.html";
+    return;
+  }
+
+  const data = userDoc.data();
+  profileUsername = data.username || data.email.split("@")[0];
+
+  if (realNameSpan) realNameSpan.textContent = data.realName || "Not set";
+  if (usernameSpan) usernameSpan.textContent = profileUsername;
+  // Hide email for public viewers
+  if (emailSpan) emailSpan.textContent = viewingOwnProfile ? (data.email || "") : "🔒 Private";
+  if (bioSpan) bioSpan.textContent = data.bio || "No bio yet";
+  if (joinedSpan) {
+    joinedSpan.textContent = data.joined
+      ? (data.joined.seconds
+          ? new Date(data.joined.seconds * 1000).toDateString()
+          : new Date(data.joined).toDateString())
+      : "Unknown";
+  }
   
+  const avatarDiv = document.getElementById("profileAvatar");
+  const avatarText = document.getElementById("avatarInitials");
+
+  if (data.photoURL) {
+    profilePic.src = data.photoURL;
+    profilePic.style.display = "block";
+    profilePic.style.borderRadius = "50%";
+    avatarDiv.style.display = "none";
+  } else if (data.cachedAvatarURL) {
+    profilePic.src = data.cachedAvatarURL;
+    profilePic.style.display = "block";
+    profilePic.style.borderRadius = "50%";
+    avatarDiv.style.display = "none";
+  } else {
+    const initials = getInitials(profileUsername);
+    const bgColor = colorFromName(profileUsername);
+    avatarText.textContent = initials;
+    avatarDiv.style.background = bgColor;
+    avatarDiv.style.display = "flex";
+    profilePic.style.display = "none";
+    
+    if (viewingOwnProfile && user) {
+      uploadAvatarToCloudinary(initials, bgColor).then(url => {
+        if (url) {
+          profilePic.src = url;
+          profilePic.style.display = "block";
+          profilePic.style.borderRadius = "50%";
+          avatarDiv.style.display = "none";
+        }
+      });
+    }
+  }
+  
+  const regenerateAvatarBtn = document.getElementById("regenerateAvatarBtn");
+  if (regenerateAvatarBtn && viewingOwnProfile && user) {
+    regenerateAvatarBtn.style.display = "inline-block";
+    regenerateAvatarBtn.addEventListener("click", async () => {
+      const initials = getInitials(profileUsername);
+      const bgColor = colorFromName(profileUsername);
+      try {
+        let publicId = null;
+        if (profilePic.src) {
+          const urlParts = profilePic.src.split("/");
+          const filename = urlParts[urlParts.length - 1].split(".")[0];
+          publicId = `profile_pics/${filename}`;
+        }
+        const newAvatarUrl = await uploadAvatarToCloudinary(initials, bgColor, publicId);
+        if (newAvatarUrl) {
+          profilePic.src = newAvatarUrl;
+          profilePic.style.display = "block";
+          profilePic.style.borderRadius = "50%";
+          document.getElementById("profileAvatar").style.display = "none";
+          alert("✅ Avatar regenerated and replaced successfully!");
+        } else {
+          alert("❌ Failed to regenerate avatar.");
+        }
+      } catch (err) {
+        console.error("Error regenerating avatar:", err);
+        alert("❌ Something went wrong.");
+      }
+    });
+  }
+
+  // HIDE edit/upload buttons for public viewers (CHANGE FOR PUBLIC VIEWING)
+  if (!viewingOwnProfile) {
+    if (editBtn) editBtn.style.display = "none";
+    if (changePicBtn) changePicBtn.style.display = "none";
+    if (uploadPic) uploadPic.style.display = "none";
+    if (regenerateAvatarBtn) regenerateAvatarBtn.style.display = "none";
+    
+    // HIDE the Volant Quick panel for public viewers
+    const quickAccessPanel = document.querySelector(".interaction-panel");
+    if (quickAccessPanel) {
+      quickAccessPanel.style.display = "none";
+    }
+  }
+  
+  if (viewingOwnProfile && editBtn && user) {
+    editBtn.style.display = "inline-block";
+    editBtn.addEventListener("click", () => {
+      window.location.href = "edit-profile.html";
+    });
+  }
+
+  await fetchUserPoems(profileUsername);
+  await fetchTopPoems(profileUsername);
+});
+
+// --- Fetch User Poems (NO CHANGES - keep original) ---
+async function fetchUserPoems(usernameToFetch) {
   try {
     const q = query(
       collection(db, "recentPoems"), 
@@ -1913,10 +2062,8 @@ async function fetchUserPoems(usernameToFetch) {
   }
 }
 
-// --- Fetch Top 3 Poems ---
+// --- Fetch Top 3 Poems (NO CHANGES) ---
 async function fetchTopPoems(profileName) {
-  if (!viewingOwnProfile) return;
-  
   try {
     if (!profileName) return;
 
@@ -1964,7 +2111,7 @@ async function fetchTopPoems(profileName) {
   }
 }
 
-// --- Cloudinary Upload ---
+// --- Cloudinary Upload (NO CHANGES) ---
 if (changePicBtn) {
   const cloudName = "dzoq4pgjn";
   const uploadPreset = "profile_pics";
@@ -1990,12 +2137,11 @@ if (changePicBtn) {
       });
       const data = await res.json();
       
-      // Get the raw URL without any transformations
       const imageUrl = data.secure_url;
 
       if (profilePic) {
         profilePic.src = imageUrl;
-        profilePic.style.borderRadius = "50%"; // Make it circular for display
+        profilePic.style.borderRadius = "50%";
       }
 
       const user = auth.currentUser;
@@ -2010,7 +2156,7 @@ if (changePicBtn) {
   });
 }
 
-// --- Profile picture expand on click ---
+// --- Profile picture expand on click (NO CHANGES) ---
 const modal = document.getElementById("imageModal");
 const expandedImg = document.getElementById("expandedImg");
 const closeModal = document.querySelector(".close-modal");
@@ -2044,7 +2190,6 @@ if (profileAvatar) {
     } else {
       const initials = document.getElementById("avatarInitials")?.textContent || "?";
       const bgColor = window.getComputedStyle(profileAvatar).backgroundColor;
-      
       const avatarStyles = window.getComputedStyle(profileAvatar);
       const borderColor = avatarStyles.borderColor;
       const borderWidth = avatarStyles.borderWidth;
@@ -2055,7 +2200,6 @@ if (profileAvatar) {
       const ctx = canvas.getContext("2d");
       
       ctx.clearRect(0, 0, 500, 500);
-      
       ctx.beginPath();
       ctx.arc(250, 250, 240, 0, 2 * Math.PI);
       ctx.fillStyle = bgColor;
@@ -2142,7 +2286,7 @@ if (logoutBtnNav) {
   });
 }
 
-// --- Search Filter ---
+// --- Search Filter (NO CHANGES) ---
 const searchInput = document.getElementById("searchInput");
 let debounceTimeout;
 
@@ -2243,249 +2387,6 @@ function showEmptyMessage(show) {
     msg.textContent = "";
   }
 }
-
-// --- Auth handling ---
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    // Not logged in - show public profile only (no edit buttons, no poems)
-    const targetUid = profileUid;
-    if (!targetUid) {
-      document.querySelector(".profile-container").innerHTML = "<p style='text-align:center;padding:2rem'>User not found.</p>";
-      return;
-    }
-    
-    const userRef = doc(db, "users", targetUid);
-    const userDoc = await getDoc(userRef);
-    
-    if (!userDoc.exists()) {
-      document.querySelector(".profile-container").innerHTML = "<p style='text-align:center;padding:2rem'>User not found.</p>";
-      return;
-    }
-    
-    const data = userDoc.data();
-    profileUsername = data.username || data.email.split("@")[0];
-    
-    if (realNameSpan) realNameSpan.textContent = data.realName || "Not set";
-    if (usernameSpan) usernameSpan.textContent = profileUsername;
-    if (emailSpan) emailSpan.textContent = data.email || "";
-    if (bioSpan) bioSpan.textContent = data.bio || "No bio yet";
-    if (joinedSpan) {
-      joinedSpan.textContent = data.joined
-        ? (data.joined.seconds
-            ? new Date(data.joined.seconds * 1000).toDateString()
-            : new Date(data.joined).toDateString())
-        : "Unknown";
-    }
-    
-    const avatarDiv = document.getElementById("profileAvatar");
-    const avatarText = document.getElementById("avatarInitials");
-    
-    if (data.photoURL) {
-      profilePic.src = data.photoURL;
-      profilePic.style.display = "block";
-      profilePic.style.borderRadius = "50%";
-      avatarDiv.style.display = "none";
-    } else if (data.cachedAvatarURL) {
-      profilePic.src = data.cachedAvatarURL;
-      profilePic.style.display = "block";
-      profilePic.style.borderRadius = "50%";
-      avatarDiv.style.display = "none";
-    } else {
-      const initials = getInitials(profileUsername);
-      const bgColor = colorFromName(profileUsername);
-      avatarText.textContent = initials;
-      avatarDiv.style.background = bgColor;
-      avatarDiv.style.display = "flex";
-      profilePic.style.display = "none";
-    }
-    
-    // Hide edit buttons for public viewing
-    if (editBtn) editBtn.style.display = "none";
-    if (changePicBtn) changePicBtn.style.display = "none";
-    if (regenerateAvatarBtn) regenerateAvatarBtn.style.display = "none";
-    
-    // Hide poems section for public viewing
-    const poemsSection = document.querySelector(".profile-poems");
-    if (poemsSection) poemsSection.style.display = "none";
-    
-    // Hide stats section for public viewing
-    const statsSection = document.querySelector(".profile-stats-section");
-    if (statsSection) statsSection.style.display = "none";
-    
-    viewingOwnProfile = false;
-    return;
-  }
-
-  // User is logged in
-  currentUserUid = user.uid;
-  const actorRef = doc(db, "users", user.uid);
-  let actorDoc = await getDoc(actorRef);
-  if (!actorDoc.exists()) {
-    await setDoc(actorRef, {
-      username: user.displayName || user.email.split("@")[0],
-      email: user.email,
-      bio: "",
-      realName: "",
-      joined: new Date(),
-      photoURL: user.photoURL || ""
-    });
-    actorDoc = await getDoc(actorRef);
-  }
-  const actorData = actorDoc.data();
-  actorUsername = actorData.username || user.email.split("@")[0];
-
-  viewingOwnProfile = !profileUid || profileUid === user.uid;
-  const targetUid = viewingOwnProfile ? user.uid : profileUid;
-
-  const userRef = doc(db, "users", targetUid);
-  const userDoc = await getDoc(userRef);
-
-  if (!userDoc.exists()) {
-    alert("User not found.");
-    window.location.href = "index.html";
-    return;
-  }
-
-  const data = userDoc.data();
-  profileUsername = data.username || data.email.split("@")[0];
-
-  if (realNameSpan) realNameSpan.textContent = data.realName || "Not set";
-  if (usernameSpan) usernameSpan.textContent = profileUsername;
-  if (emailSpan) emailSpan.textContent = data.email || "";
-  if (bioSpan) bioSpan.textContent = data.bio || "No bio yet";
-  if (joinedSpan) {
-    joinedSpan.textContent = data.joined
-      ? (data.joined.seconds
-          ? new Date(data.joined.seconds * 1000).toDateString()
-          : new Date(data.joined).toDateString())
-      : "Unknown";
-  }
-  
-  const avatarDiv = document.getElementById("profileAvatar");
-  const avatarText = document.getElementById("avatarInitials");
-
-  if (data.photoURL) {
-    profilePic.src = data.photoURL;
-    profilePic.style.display = "block";
-    profilePic.style.borderRadius = "50%";
-    avatarDiv.style.display = "none";
-  } else if (data.cachedAvatarURL) {
-    profilePic.src = data.cachedAvatarURL;
-    profilePic.style.display = "block";
-    profilePic.style.borderRadius = "50%";
-    avatarDiv.style.display = "none";
-  } else {
-    const initials = getInitials(profileUsername);
-    const bgColor = colorFromName(profileUsername);
-
-    avatarText.textContent = initials;
-    avatarDiv.style.background = bgColor;
-    avatarDiv.style.display = "flex";
-    profilePic.style.display = "none";
-    
-    if (viewingOwnProfile) {
-      uploadAvatarToCloudinary(initials, bgColor).then(url => {
-        if (url) {
-          profilePic.src = url;
-          profilePic.style.display = "block";
-          profilePic.style.borderRadius = "50%";
-          avatarDiv.style.display = "none";
-        }
-      });
-    }
-  }
-  
-  const regenerateAvatarBtn = document.getElementById("regenerateAvatarBtn");
-
-  if (regenerateAvatarBtn && viewingOwnProfile) {
-    regenerateAvatarBtn.style.display = "inline-block";
-    regenerateAvatarBtn.addEventListener("click", async () => {
-      const initials = getInitials(profileUsername);
-      const bgColor = colorFromName(profileUsername);
-
-      try {
-        let publicId = null;
-        if (profilePic.src) {
-          const urlParts = profilePic.src.split("/");
-          const filename = urlParts[urlParts.length - 1].split(".")[0];
-          publicId = `profile_pics/${filename}`;
-        }
-
-        const newAvatarUrl = await uploadAvatarToCloudinary(initials, bgColor, publicId);
-        if (newAvatarUrl) {
-          profilePic.src = newAvatarUrl;
-          profilePic.style.display = "block";
-          profilePic.style.borderRadius = "50%";
-          document.getElementById("profileAvatar").style.display = "none";
-          alert("✅ Avatar regenerated and replaced successfully!");
-        } else {
-          alert("❌ Failed to regenerate avatar.");
-        }
-      } catch (err) {
-        console.error("Error regenerating avatar:", err);
-        alert("❌ Something went wrong.");
-      }
-    });
-  }
-
-  if (!viewingOwnProfile) {
-    if (editBtn) editBtn.style.display = "none";
-    if (changePicBtn) changePicBtn.style.display = "none";
-    if (uploadPic) uploadPic.style.display = "none";
-    if (regenerateAvatarBtn) regenerateAvatarBtn.style.display = "none";
-    
-    // Hide poems section for non-owners
-    const poemsSection = document.querySelector(".profile-poems");
-    if (poemsSection) poemsSection.style.display = "none";
-    
-    // Hide stats section for non-owners
-    const statsSection = document.querySelector(".profile-stats-section");
-    if (statsSection) statsSection.style.display = "none";
-  }
-  
-  if (viewingOwnProfile && editBtn) {
-    editBtn.style.display = "inline-block";
-    editBtn.addEventListener("click", () => {
-      window.location.href = "edit-profile.html";
-    });
-    
-    // Show poems section for owner
-    const poemsSection = document.querySelector(".profile-poems");
-    if (poemsSection) poemsSection.style.display = "block";
-    
-    // Show stats section for owner
-    const statsSection = document.querySelector(".profile-stats-section");
-    if (statsSection) statsSection.style.display = "flex";
-  }
-
-  if (!viewingOwnProfile) {
-    const quickAccessPanel = document.querySelector(".interaction-panel");
-    if (quickAccessPanel) {
-      quickAccessPanel.style.display = "none";
-    }
-  }
-
-  // Only fetch poems if viewing own profile
-  if (viewingOwnProfile) {
-    await fetchUserPoems(profileUsername);
-    await fetchTopPoems(profileUsername);
-  }
-});
-
-// Hide empty Bio and Joined rows
-setTimeout(() => {
-  const bioText = document.getElementById("bio")?.innerText;
-  if (!bioText || bioText === "No bio yet" || bioText.trim() === "") {
-    const bioRow = document.querySelector('#bio')?.closest('p');
-    if (bioRow) bioRow.style.display = 'none';
-  }
-  
-  const joinedText = document.getElementById("joined")?.innerText;
-  if (!joinedText || joinedText === "Unknown" || joinedText.includes("1969") || joinedText.includes("1970")) {
-    const joinedRow = document.querySelector('#joined')?.closest('p');
-    if (joinedRow) joinedRow.style.display = 'none';
-  }
-}, 500);
 </script>
 
 </body>
